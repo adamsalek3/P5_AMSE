@@ -1,299 +1,248 @@
-// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
-
-import 'package:english_words/english_words.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
+
+// Les données sont stockées dans assets/attractions.json
 
 void main() {
-  runApp(MyApp());
+  runApp(AttractionApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
+class AttractionApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MyAppState(),
-      child: MaterialApp(
-        title: 'Namer App',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+    return MaterialApp(
+      title: "RCDB",
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          selectedItemColor: Colors.blue,
+          unselectedItemColor: Colors.grey,
         ),
-        home: MyHomePage(),
       ),
+      home: MainScreen(),
     );
   }
 }
 
-class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
-  var history = <WordPair>[];
-
-  GlobalKey? historyListKey;
-
-  void getNext() {
-    history.insert(0, current);
-    var animatedList = historyListKey?.currentState as AnimatedListState?;
-    animatedList?.insertItem(0);
-    current = WordPair.random();
-    notifyListeners();
-  }
-
-  var favorites = <WordPair>[];
-
-  void toggleFavorite([WordPair? pair]) {
-    pair = pair ?? current;
-    if (favorites.contains(pair)) {
-      favorites.remove(pair);
-    } else {
-      favorites.add(pair);
-    }
-    notifyListeners();
-  }
-
-  void removeFavorite(WordPair pair) {
-    favorites.remove(pair);
-    notifyListeners();
-  }
-}
-
-class MyHomePage extends StatefulWidget {
+class MainScreen extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _MainScreenState createState() => _MainScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  var selectedIndex = 0;
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
+  List<String> likedAttractions = [];
+
+  void toggleLike(String name) {
+    setState(() {
+      if (likedAttractions.contains(name)) {
+        likedAttractions.remove(name);
+      } else {
+        likedAttractions.add(name);
+      }
+    });
+  }
+
+  List<Widget> get _pages => [
+        HomePage(),
+        AttractionsPage(toggleLike, likedAttractions),
+        LikesPage(likedAttractions, toggleLike),
+        AboutPage(),
+      ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    var colorScheme = Theme.of(context).colorScheme;
-
-    Widget page;
-    switch (selectedIndex) {
-      case 0:
-        page = GeneratorPage();
-        break;
-      case 1:
-        page = FavoritesPage();
-        break;
-      default:
-        throw UnimplementedError('no widget for $selectedIndex');
-    }
-
-    // The container for the current page, with its background color
-    // and subtle switching animation.
-    var mainArea = ColoredBox(
-      color: colorScheme.surfaceVariant,
-      child: AnimatedSwitcher(
-        duration: Duration(milliseconds: 200),
-        child: page,
-      ),
-    );
-
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 450) {
-            // Use a more mobile-friendly layout with BottomNavigationBar
-            // on narrow screens.
-            return Column(
-              children: [
-                Expanded(child: mainArea),
-                SafeArea(
-                  child: BottomNavigationBar(
-                    items: [
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.home),
-                        label: 'Home',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.favorite),
-                        label: 'Favorites',
-                      ),
-                    ],
-                    currentIndex: selectedIndex,
-                    onTap: (value) {
-                      setState(() {
-                        selectedIndex = value;
-                      });
-                    },
-                  ),
-                )
-              ],
-            );
-          } else {
-            return Row(
-              children: [
-                SafeArea(
-                  child: NavigationRail(
-                    extended: constraints.maxWidth >= 600,
-                    destinations: [
-                      NavigationRailDestination(
-                        icon: Icon(Icons.home),
-                        label: Text('Home'),
-                      ),
-                      NavigationRailDestination(
-                        icon: Icon(Icons.favorite),
-                        label: Text('Favorites'),
-                      ),
-                    ],
-                    selectedIndex: selectedIndex,
-                    onDestinationSelected: (value) {
-                      setState(() {
-                        selectedIndex = value;
-                      });
-                    },
-                  ),
-                ),
-                Expanded(child: mainArea),
-              ],
-            );
-          }
-        },
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Attractions'),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: "Favoris"),
+          BottomNavigationBarItem(icon: Icon(Icons.info), label: "A Propos"),
+        ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
       ),
     );
   }
 }
 
-class GeneratorPage extends StatelessWidget {
+class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
-
-    IconData icon;
-    if (appState.favorites.contains(pair)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
-    }
-
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(
-            flex: 3,
-            child: HistoryListView(),
-          ),
+          Image.network('https://i.imgur.com/TFfP7vW.jpeg',
+              height: 200, fit: BoxFit.cover),
           SizedBox(height: 10),
-          BigCard(pair: pair),
+          Text("Bienvenue sur Roller Coaster Data Base",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           SizedBox(height: 10),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  appState.toggleFavorite();
-                },
-                icon: Icon(icon),
-                label: Text('Like'),
-              ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  appState.getNext();
-                },
-                child: Text('Next'),
-              ),
-            ],
-          ),
-          Spacer(flex: 2),
+          Text("Venez parcourir vos attractions préférées !",
+              style: TextStyle(fontSize: 16, color: Colors.grey)),
         ],
       ),
     );
   }
 }
 
-class BigCard extends StatelessWidget {
-  const BigCard({
-    Key? key,
-    required this.pair,
-  }) : super(key: key);
-
-  final WordPair pair;
-
-  @override
-  Widget build(BuildContext context) {
-    var theme = Theme.of(context);
-    var style = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
-
-    return Card(
-      color: theme.colorScheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: AnimatedSize(
-          duration: Duration(milliseconds: 200),
-          // Make sure that the compound word wraps correctly when the window
-          // is too narrow.
-          child: MergeSemantics(
-            child: Wrap(
-              children: [
-                Text(
-                  pair.first,
-                  style: style.copyWith(fontWeight: FontWeight.w200),
-                ),
-                Text(
-                  pair.second,
-                  style: style.copyWith(fontWeight: FontWeight.bold),
-                )
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+void launchURL(String url) {
+  // Fonction pour ouvrir le lien dans un navigateur
 }
 
-class FavoritesPage extends StatelessWidget {
+class AttractionsPage extends StatefulWidget {
+  final Function toggleLike;
+  final List<String> likedAttractions;
+  AttractionsPage(this.toggleLike, this.likedAttractions);
+  @override
+  _AttractionsPageState createState() => _AttractionsPageState();
+}
+
+class _AttractionsPageState extends State<AttractionsPage> {
+  List attractions = [];
+  String selectedType = 'Tous';
+  String selectedManufacturer = 'Tous';
+  String selectedPark = 'Tous';
+
+  @override
+  void initState() {
+    super.initState();
+    loadAttractions();
+  }
+
+  Future<void> loadAttractions() async {
+    String data = await rootBundle.loadString('assets/attractions.json');
+    setState(() {
+      attractions = json.decode(data);
+    });
+  }
+
+  List<String> getAttractionTypes() {
+    Set<String> types = {'Tous'};
+    for (var attraction in attractions) {
+      types.add(attraction['type']);
+    }
+    return types.toList();
+  }
+
+  List<String> getManufacturers() {
+    Set<String> manufacturers = {'Tous'};
+    for (var attraction in attractions) {
+      manufacturers.add(attraction['manufacturer']);
+    }
+    return manufacturers.toList();
+  }
+
+  List<String> getParks() {
+    Set<String> parks = {'Tous'};
+    for (var attraction in attractions) {
+      parks.add(attraction['park']);
+    }
+    return parks.toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    var theme = Theme.of(context);
-    var appState = context.watch<MyAppState>();
-
-    if (appState.favorites.isEmpty) {
-      return Center(
-        child: Text('No favorites yet.'),
-      );
-    }
+    List filteredAttractions = attractions.where((attraction) {
+      bool matchesType =
+          selectedType == 'Tous' || attraction['type'] == selectedType;
+      bool matchesManufacturer = selectedManufacturer == 'Tous' ||
+          attraction['manufacturer'] == selectedManufacturer;
+      bool matchesPark =
+          selectedPark == 'Tous' || attraction['park'] == selectedPark;
+      return matchesType && matchesManufacturer && matchesPark;
+    }).toList();
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(30),
-          child: Text('You have '
-              '${appState.favorites.length} favorites:'),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            SizedBox(height: 5),
+            Flexible(
+              child: DropdownButtonFormField<String>(
+                value: selectedType,
+                decoration: InputDecoration(
+                  labelText: "Type",
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 5, vertical: 15),
+                ),
+                items: getAttractionTypes()
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedType = value!;
+                  });
+                },
+              ),
+            ),
+            Flexible(
+              child: DropdownButtonFormField<String>(
+                value: selectedManufacturer,
+                decoration: InputDecoration(
+                  labelText: "Constructeur",
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 5, vertical: 15),
+                ),
+                items: getManufacturers()
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedManufacturer = value!;
+                  });
+                },
+              ),
+            ),
+            Flexible(
+              child: DropdownButtonFormField<String>(
+                value: selectedPark,
+                decoration: InputDecoration(
+                  labelText: "Parc",
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 5, vertical: 15),
+                ),
+                items: getParks()
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedPark = value!;
+                  });
+                },
+              ),
+            ),
+          ],
         ),
         Expanded(
-          // Make better use of wide windows with a grid.
-          child: GridView(
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 400,
-              childAspectRatio: 400 / 80,
-            ),
-            children: [
-              for (var pair in appState.favorites)
-                ListTile(
-                  leading: IconButton(
-                    icon: Icon(Icons.delete_outline, semanticLabel: 'Delete'),
-                    color: theme.colorScheme.primary,
-                    onPressed: () {
-                      appState.removeFavorite(pair);
-                    },
-                  ),
-                  title: Text(
-                    pair.asLowerCase,
-                    semanticsLabel: pair.asPascalCase,
-                  ),
-                ),
-            ],
+          child: ListView.builder(
+            itemCount: filteredAttractions.length,
+            itemBuilder: (context, index) {
+              var attraction = filteredAttractions[index];
+              bool isLiked =
+                  widget.likedAttractions.contains(attraction['name']);
+              return AttractionTile(
+                attraction: attraction,
+                isLiked: isLiked,
+                toggleLike: widget.toggleLike,
+              );
+            },
           ),
         ),
       ],
@@ -301,63 +250,190 @@ class FavoritesPage extends StatelessWidget {
   }
 }
 
-class HistoryListView extends StatefulWidget {
-  const HistoryListView({Key? key}) : super(key: key);
-
-  @override
-  State<HistoryListView> createState() => _HistoryListViewState();
-}
-
-class _HistoryListViewState extends State<HistoryListView> {
-  /// Needed so that [MyAppState] can tell [AnimatedList] below to animate
-  /// new items.
-  final _key = GlobalKey();
-
-  /// Used to "fade out" the history items at the top, to suggest continuation.
-  static const Gradient _maskingGradient = LinearGradient(
-    // This gradient goes from fully transparent to fully opaque black...
-    colors: [Colors.transparent, Colors.black],
-    // ... from the top (transparent) to half (0.5) of the way to the bottom.
-    stops: [0.0, 0.5],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
+class LikesPage extends StatelessWidget {
+  final List<String> likedAttractions;
+  final Function toggleLike;
+  LikesPage(this.likedAttractions, this.toggleLike);
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<MyAppState>();
-    appState.historyListKey = _key;
+    if (likedAttractions.isEmpty) {
+      return Center(
+        child: Text(
+          "Aucune attraction likée.",
+          style: TextStyle(fontSize: 18, color: Colors.grey),
+        ),
+      );
+    }
+    return FutureBuilder(
+      future: rootBundle.loadString('assets/attractions.json'),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Center(child: CircularProgressIndicator());
+        }
+        List attractions = json.decode(snapshot.data!);
+        List likedAttractionDetails = attractions
+            .where(
+                (attraction) => likedAttractions.contains(attraction['name']))
+            .toList();
 
-    return ShaderMask(
-      shaderCallback: (bounds) => _maskingGradient.createShader(bounds),
-      // This blend mode takes the opacity of the shader (i.e. our gradient)
-      // and applies it to the destination (i.e. our animated list).
-      blendMode: BlendMode.dstIn,
-      child: AnimatedList(
-        key: _key,
-        reverse: true,
-        padding: EdgeInsets.only(top: 100),
-        initialItemCount: appState.history.length,
-        itemBuilder: (context, index, animation) {
-          final pair = appState.history[index];
-          return SizeTransition(
-            sizeFactor: animation,
-            child: Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  appState.toggleFavorite(pair);
-                },
-                icon: appState.favorites.contains(pair)
-                    ? Icon(Icons.favorite, size: 12)
-                    : SizedBox(),
-                label: Text(
-                  pair.asLowerCase,
-                  semanticsLabel: pair.asPascalCase,
+        return ListView.builder(
+          itemCount: likedAttractionDetails.length,
+          itemBuilder: (context, index) {
+            var attraction = likedAttractionDetails[index];
+            return AttractionTile(
+              attraction: attraction,
+              isLiked: true,
+              toggleLike: toggleLike,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class AttractionTile extends StatelessWidget {
+  final Map attraction;
+  final bool isLiked;
+  final Function toggleLike;
+
+  AttractionTile({
+    required this.attraction,
+    required this.isLiked,
+    required this.toggleLike,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: Image.network(attraction['image']),
+        title: Text(attraction['name']),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(attraction['type']),
+            Text("Parc : ${attraction['park']}",
+                style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          ],
+        ),
+        trailing: IconButton(
+          icon: Icon(
+            isLiked ? Icons.favorite : Icons.favorite_border,
+            color: isLiked ? Colors.red : null,
+          ),
+          onPressed: () => toggleLike(attraction['name']),
+        ),
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(attraction['name']),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Image.network(
+                        attraction['image'],
+                        height: 200,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    InfoRow("Type", attraction['type']),
+                    InfoRow("Fabricant", attraction['manufacturer']),
+                    InfoRow("Parc", attraction['park']),
+                    InfoRow("Localisation", attraction['location']),
+                    InfoRow("Année d'ouverture",
+                        attraction['opening_year']?.toString()),
+                    InfoRow("Hauteur (m)", attraction['height_m']?.toString()),
+                    InfoRow(
+                        "Vitesse (km/h)", attraction['speed_kmh']?.toString()),
+                  ],
                 ),
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Fermer'),
+                ),
+              ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class InfoRow extends StatelessWidget {
+  final String label;
+  final String? value;
+
+  InfoRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            "$label :",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Text(value ?? "Non disponible"),
+        ],
+      ),
+    );
+  }
+}
+
+class AboutPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "À propos de l'application",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 10),
+          Text(
+            "Cette application vous permet d'explorer une base de données sur les montagnes russes et autres attractions à sensations. Vous pouvez parcourir la liste des attractions, les filtrer selon différents critères et enregistrer vos favoris. Vous pouvez retrouver vos favroris dans l'onglet prévu à cet effet.",
+            style: TextStyle(fontSize: 16),
+          ),
+          SizedBox(height: 20),
+          Text(
+            "Filtres disponibles :",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 10),
+          Text(
+            "- Type : Permet de filtrer les attractions selon leur catégorie (Ex : Steel Coaster, Hybrid Coaster, Dark Ride ...).",
+            style: TextStyle(fontSize: 16),
+          ),
+          Text(
+            "- Constructeur : Affiche uniquement les attractions fabriquées par un constructeur spécifique.",
+            style: TextStyle(fontSize: 16),
+          ),
+          Text(
+            "- Parc : Permet de voir les attractions situées dans un parc précis.",
+            style: TextStyle(fontSize: 16),
+          ),
+          SizedBox(height: 50),
+          Text(
+            "Attention : les photos sont stockées en ligne sur Imgur, et ne sont donc pas accessibles si vous êtes hors ligne.\n\nCe projet a été réalisé par Adam SALEK - FISE 2026\nP5-AMSE TP1 Flutter",
+            style: TextStyle(
+                fontSize: 16, fontStyle: FontStyle.italic, color: Colors.grey),
+          ),
+        ],
       ),
     );
   }
