@@ -85,11 +85,7 @@ class _Exo2State extends State<Exo2> {
                   ..scale(_scale * _mirror, _scale)
                   ..rotateX(_rotationX)
                   ..rotateZ(_rotationZ),
-                child: Image.network('https://picsum.photos/1080/1920'
-                    // width: 200,
-                    // height: 200,
-                    // fit: BoxFit.cover,
-                    ),
+                child: Image.network('https://picsum.photos/1080/1920'),
               ),
             ),
           ),
@@ -115,7 +111,7 @@ class _Exo2State extends State<Exo2> {
                   Slider(
                     value: _rotationX,
                     min: 0.0,
-                    max: 6.28, // 2*PI pour une rotation complète
+                    max: 6.28,
                     onChanged: (value) {
                       setState(() {
                         _rotationX = value;
@@ -126,7 +122,7 @@ class _Exo2State extends State<Exo2> {
                   Slider(
                     value: _rotationZ,
                     min: 0.0,
-                    max: 6.28, // 2*PI pour une rotation complète
+                    max: 6.28,
                     onChanged: (value) {
                       setState(() {
                         _rotationZ = value;
