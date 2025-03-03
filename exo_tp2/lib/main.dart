@@ -3,7 +3,6 @@ import 'exo1.dart';
 import 'exo2.dart';
 import 'exo4.dart';
 import 'exo5.dart';
-import 'test.dart';
 
 void main() {
   runApp(const MyApp());
@@ -72,8 +71,7 @@ class MenuScreen extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => const DisplayTileWidget()),
+                  MaterialPageRoute(builder: (context) => const Exo5()),
                 );
               },
             ),

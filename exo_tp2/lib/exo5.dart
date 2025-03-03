@@ -8,7 +8,7 @@ class Exo5 extends StatefulWidget {
 }
 
 class _Exo5State extends State<Exo5> {
-  int gridSize = 3; // Par défaut taille grille
+  int gridSize = 3; // Taille de la grille de base
   final String imageURL = 'https://picsum.photos/512';
 
   @override
@@ -30,24 +30,33 @@ class _Exo5State extends State<Exo5> {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: gridSize,
+                crossAxisSpacing: 2,
+                mainAxisSpacing: 2,
               ),
               itemCount: gridSize * gridSize,
               itemBuilder: (context, index) {
                 int row = index ~/ gridSize;
                 int col = index % gridSize;
-                return CroppedTile(
-                  imageURL: imageURL,
-                  gridSize: gridSize,
-                  row: row,
-                  col: col,
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  padding: const EdgeInsets.all(1),
+                  child: createTileWidgetFrom(Tile(
+                    imageURL: imageURL,
+                    alignment: Alignment(
+                      -1.0 + (2 * col / (gridSize - 1)),
+                      -1.0 + (2 * row / (gridSize - 1)),
+                    ),
+                    widthFactor: 1 / gridSize,
+                    heightFactor: 1 / gridSize,
+                  )),
                 );
               },
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // Slider
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -75,32 +84,33 @@ class _Exo5State extends State<Exo5> {
   }
 }
 
-class CroppedTile extends StatelessWidget {
-  final String imageURL;
-  final int gridSize;
-  final int row;
-  final int col;
+class Tile {
+  String imageURL;
+  Alignment alignment;
+  double widthFactor;
+  double heightFactor;
 
-  const CroppedTile({
-    super.key,
-    required this.imageURL,
-    required this.gridSize,
-    required this.row,
-    required this.col,
-  });
+  Tile(
+      {required this.imageURL,
+      required this.alignment,
+      required this.widthFactor,
+      required this.heightFactor});
 
-  @override
-  Widget build(BuildContext context) {
-    return ClipRect(
-      child: Align(
-        alignment: Alignment(
-          -1.0 + (2 * col / (gridSize - 1)), // Découpage horizontal
-          -1.0 + (2 * row / (gridSize - 1)), // Découpage vertical
+  Widget croppedImageTile() {
+    return FittedBox(
+      fit: BoxFit.fill,
+      child: ClipRect(
+        child: Align(
+          alignment: alignment,
+          widthFactor: widthFactor,
+          heightFactor: heightFactor,
+          child: Image.network(imageURL),
         ),
-        widthFactor: 1 / gridSize,
-        heightFactor: 1 / gridSize,
-        child: Image.network(imageURL, fit: BoxFit.cover),
       ),
     );
   }
+}
+
+Widget createTileWidgetFrom(Tile tile) {
+  return InkWell(child: tile.croppedImageTile());
 }
