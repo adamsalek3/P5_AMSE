@@ -3,6 +3,7 @@ import 'exo1.dart';
 import 'exo2.dart';
 import 'exo4.dart';
 import 'exo5.dart';
+import 'exo6.dart';
 
 void main() {
   runApp(const MyApp());
@@ -72,6 +73,17 @@ class MenuScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const Exo5()),
+                );
+              },
+            ),
+          ),
+          Card(
+            child: ListTile(
+              title: const Text("Exercice 6 :  Animation d'une tuile"),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Exo6()),
                 );
               },
             ),
